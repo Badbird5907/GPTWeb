@@ -7,8 +7,6 @@ import lombok.Data;
 @Data
 @JsonSerialize
 @AllArgsConstructor
-public class SearchResult {
-    private String title;
-    private String url;
-    private String description;
+public class DateTimeResult {
+    private String result;
 }

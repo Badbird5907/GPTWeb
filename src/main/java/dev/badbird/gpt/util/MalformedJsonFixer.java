@@ -4,10 +4,7 @@ import com.theokanning.openai.completion.chat.ChatCompletionChoice;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
-import com.theokanning.openai.messages.Message;
 import com.theokanning.openai.service.OpenAiService;
-
-import java.util.HashMap;
 import java.util.List;
 
 public class MalformedJsonFixer {

@@ -6,9 +6,7 @@ import com.google.gson.GsonBuilder;
 import com.theokanning.openai.completion.chat.*;
 import com.theokanning.openai.service.FunctionExecutor;
 import com.theokanning.openai.service.OpenAiService;
-import dev.badbird.gpt.functions.WebGet;
-import dev.badbird.gpt.functions.WebSearch;
-import dev.badbird.gpt.functions.WikipediaSummary;
+import dev.badbird.gpt.functions.*;
 import dev.badbird.gpt.util.MalformedJsonFixer;
 import io.reactivex.Flowable;
 import lombok.Getter;
@@ -17,7 +15,10 @@ import okhttp3.OkHttpClient;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
@@ -29,13 +30,25 @@ public class Main {
 
     @SneakyThrows
     public static void main(String[] args) {
+        /*
+        if (true) {
+            WebSearch webSearch = new WebSearch();
+            webSearch.setQuery("Badbird5907");
+            List<SearchResult> execute = webSearch.execute();
+            for (SearchResult searchResult : execute) {
+                System.out.println(searchResult.getTitle() + " - " + searchResult.getUrl() + "\n" + searchResult.getDescription());
+            }
+            return;
+        }
+         */
         String token = new String(Files.readAllBytes(new File("token.txt").toPath())).trim();
         OpenAiService service = new OpenAiService(token);
-        List<ChatFunction> functionList = List.of(ChatFunction.builder()
-                .name("web_get")
-                .description("Get the contents of a webpage")
-                .executor(WebGet.class, WebGet::execute)
-                .build(),
+        List<ChatFunction> functionList = List.of(
+                ChatFunction.builder()
+                        .name("web_get")
+                        .description("Get the contents of a webpage")
+                        .executor(WebGet.class, WebGet::execute)
+                        .build(),
                 ChatFunction.builder()
                         .name("web_search")
                         .description("Search google")
@@ -50,8 +63,13 @@ public class Main {
                         .name("wikipedia_content")
                         .description("Get the text contents of a wikipedia page")
                         .executor(WikipediaSummary.class, WikipediaSummary::execute)
+                        .build(),
+                ChatFunction.builder()
+                        .name("get_date_time")
+                        .description("Get the current date and time in your format of choice")
+                        .executor(GetDateTime.class, GetDateTime::execute)
                         .build()
-                );
+        );
         FunctionExecutor functionExecutor = new FunctionExecutor(functionList);
 
         OpenAiService.functionCallMutator = (s) -> {
@@ -74,8 +92,17 @@ public class Main {
         messages.add(systemMessage);
         System.out.print("First Query: ");
         Scanner scanner = new Scanner(System.in);
-        ChatMessage firstMsg = new ChatMessage(ChatMessageRole.USER.value(), scanner.nextLine());
-        messages.add(firstMsg);
+        String firstLine = scanner.nextLine();
+        if (firstLine.startsWith("readf:")) {
+            String[] split = firstLine.split(":");
+            String filename = split[1];
+            String fileContents = new String(Files.readAllBytes(new File(filename).toPath()));
+            ChatMessage firstMsg = new ChatMessage(ChatMessageRole.USER.value(), fileContents);
+            messages.add(firstMsg);
+        } else {
+            ChatMessage firstMsg = new ChatMessage(ChatMessageRole.USER.value(), firstLine);
+            messages.add(firstMsg);
+        }
 
         while (true) {
             try {
@@ -119,13 +146,39 @@ public class Main {
                     messages.add(functionResponse);
                     continue;
                 }
-
-                System.out.print("Next Query: ");
-                String nextLine = scanner.nextLine();
-                if (nextLine.equalsIgnoreCase("exit")) {
-                    System.exit(0);
+                commandLoop: while (true) {
+                    System.out.print("Next Query: ");
+                    String nextLine = scanner.nextLine();
+                    if (nextLine.equalsIgnoreCase("exit")) {
+                        System.exit(0);
+                    }
+                    if (nextLine.startsWith("readf:")) {
+                        String[] split = nextLine.split(":");
+                        String filename = split[1];
+                        String fileContents = new String(Files.readAllBytes(new File(filename).toPath()));
+                        messages.add(new ChatMessage(ChatMessageRole.USER.value(), fileContents));
+                    } else if (nextLine.startsWith("writeto:")) {
+                        String[] split = nextLine.split(":");
+                        String filename = split[1];
+                        // write the last message to the file
+                        System.out.println("Writing last message to " + filename);
+                        ChatMessage lastMessage = messages.get(messages.size() - 1);
+                        Files.write(new File(filename).toPath(), lastMessage.getContent().getBytes());
+                    } else if (nextLine.startsWith("writeallto:")) {
+                        String[] split = nextLine.split(":");
+                        String filename = split[1];
+                        System.out.println("Writing all messages to " + filename);
+                        StringBuilder sb = new StringBuilder();
+                        for (ChatMessage message : messages) {
+                            sb.append(message.getRole()).append(":\n");
+                            sb.append(message.getContent()).append("\n\n");
+                        }
+                        Files.write(new File(filename).toPath(), sb.toString().getBytes());
+                    } else {
+                        messages.add(new ChatMessage(ChatMessageRole.USER.value(), nextLine));
+                        break commandLoop; // break out of the command loop
+                    }
                 }
-                messages.add(new ChatMessage(ChatMessageRole.USER.value(), nextLine));
             } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println("Error occurred! Last message was from " + messages.get(messages.size() - 1).getRole());
