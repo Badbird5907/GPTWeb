@@ -3,6 +3,7 @@ package dev.badbird.gpt.functions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import dev.badbird.gpt.Main;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -21,7 +22,7 @@ public class WebGet {
         try {
             System.out.println("[GET] - Getting " + url);
             // send a get request to the url and return the result
-            Document document = Jsoup.connect(url).userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0").get();
+            Document document = Jsoup.connect(url).userAgent(Main.USER_AGENT).get();
             Elements body = document.select("body");
             // remove any useless elements such as headers and footers
             body.select("header").remove();

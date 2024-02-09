@@ -3,6 +3,7 @@ package dev.badbird.gpt.functions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import dev.badbird.gpt.Main;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,7 +23,7 @@ public class WebSearch {
     public List<SearchResult> execute() {
         System.out.println("[SEARCH] - Searching for " + query);
         String url = "https://www.google.com/search?q=" + query;
-        Document document = Jsoup.connect(url).userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0").get();
+        Document document = Jsoup.connect(url).userAgent(Main.USER_AGENT).get();
         // document.querySelectorAll("#rso > div > div > div > div > div > div > span > a")
         Elements elements = document.select("#rso > div > div > div > div > div > div > span > a");
         List<SearchResult> results = new ArrayList<>();
